@@ -1,95 +1,140 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="p-6 bg-[#e8f4f1] min-h-screen">
-    <div class="bg-[#d1e7e2] p-8 rounded-[40px] mb-8 shadow-sm">
-        <h1 class="text-3xl font-bold mb-6 text-gray-800">Monitoring System</h1>
-        <div class="flex gap-4">
-           
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <<h2 class="h4"> Monitoring {{ $kolam?->nama ?? 'Tanpa Nama' }}</h2>
+<span class="badge bg-primary">Lokasi: {{ $kolam?->lokasi ?? 'Tidak diketahui' }}</span>
+    </div>
+
+    {{-- KARTU DATA REAL-TIME --}}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 border-start border-primary border-4">
+                <small class="text-muted fw-bold text-uppercase">Suhu Air</small>
+                <h3 class="mt-2 text-primary">{{ $realtime->suhu_air ?? '0' }}°C</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 border-start border-success border-4">
+                <small class="text-muted fw-bold text-uppercase">pH Air</small>
+                <h3 class="mt-2 text-success">{{ $realtime->ph ?? '0' }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 border-start border-warning border-4">
+                <small class="text-muted fw-bold text-uppercase">Salinitas</small>
+                <h3 class="mt-2 text-warning">{{ $realtime->salinitas ?? '0' }} <small class="fs-6 text-muted">ppt</small></h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm p-3 border-start border-info border-4">
+                <small class="text-muted fw-bold text-uppercase">Ketinggian</small>
+                <h3 class="mt-2 text-info">{{ $realtime->ketinggian_air ?? '0' }} <small class="fs-6 text-muted">cm</small></h3>
+            </div>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 gap-8">
-        @php
-            $parameters = [
-                ['id' => 'salinitas', 'title' => 'Salinitas', 'value' => '1125', 'unit' => 'ppt'],
-                ['id' => 'ph', 'title' => 'pH', 'value' => '7.5', 'unit' => 'pH'],
-                ['id' => 'suhu', 'title' => 'Suhu', 'value' => '28', 'unit' => '°C'],
-                ['id' => 'ketinggian', 'title' => 'Ketinggian Air', 'value' => '1.2', 'unit' => 'm']
-            ];
-        @endphp
-
-        @foreach($parameters as $param)
-        <div class="bg-white p-8 rounded-[30px] shadow-sm flex flex-col md:flex-row items-center gap-10 border border-gray-100">
-            <div class="w-full md:w-1/3">
-                <h3 class="text-xl font-bold mb-4 text-gray-800">{{ $param['title'] }}</h3>
-                <div class="relative flex justify-center items-center">
-                    <canvas id="pie-{{ $param['id'] }}" width="200" height="200"></canvas>
-                    <div class="absolute text-center">
-                        <span class="block text-2xl font-bold text-gray-800">{{ $param['value'] }}</span>
-                        <span class="text-gray-400 text-xs uppercase">{{ $param['unit'] }}</span>
+    <div class="row">
+        {{-- FILTER PARAMETER & TANGGAL --}}
+        <div class="col-md-12">
+            <div class="card shadow-sm p-4 mb-4 border-0">
+                <form action="" method="GET" class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Dari Tanggal</label>
+                        <input type="date" name="start_date" class="form-control shadow-sm" value="{{ request('start_date', $startDate ?? date('Y-m-d', strtotime('-7 days'))) }}">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-secondary">Sampai Tanggal</label>
+                        <input type="date" name="end_date" class="form-control shadow-sm" value="{{ request('end_date') }}"><input type="date" name="end_date" class="form-control shadow-sm" value="{{ request('end_date') }}">
                     </div>
-                </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Parameter Ditampilkan</label>
+                        <div class="d-flex gap-3 flex-wrap mt-1">
+                            @foreach(['ph', 'suhu_air', 'salinitas', 'ketinggian_air'] as $p)
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="params[]" value="{{ $p }}" {{ in_array($p, $selectedParams) ? 'checked' : '' }}>
+                                    <label class="form-check-label small text-capitalize">{{ str_replace('_', ' ', $p) }}</label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-end">
+                        <button type="submit" class="btn btn-primary w-100 shadow-sm">
+                            <i class="bi bi-filter"></i> Filter Data
+                        </button>
+                    </div>
+                </form>
             </div>
+        </div>
 
-            <div class="w-full md:w-2/3 relative">
-                <canvas id="line-{{ $param['id'] }}" height="100"></canvas>
-                <div class="flex justify-end mt-2">
-                    <span class="text-xl text-gray-400">📅</span>
+        {{-- LINE CHART --}}
+        <div class="col-md-12">
+            <div class="card border-0 shadow-sm p-4">
+                <h6 class="fw-bold mb-4 text-secondary italic">📈 Line Chart Periode Hasil Data</h6>
+                <div style="height: 450px;">
+                    <canvas id="pondChart"></canvas>
                 </div>
             </div>
         </div>
-        @endforeach
     </div>
 </div>
 
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const params = ['salinitas', 'ph', 'suhu', 'ketinggian'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+    const ctx = document.getElementById('pondChart').getContext('2d');
+    const dataMaster = @json($chartData);
+    
+    // Menggunakan created_at sesuai default Laravel
+    const labels = dataMaster.map(d => {
+        let date = new Date(d.created_at);
+        return date.toLocaleDateString('id-ID') + ' ' + date.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+    });
+    
+    const datasets = [];
+    const colors = { 
+        ph: 'rgb(25, 135, 84)', // Hijau
+        suhu_air: 'rgb(220, 53, 69)', // Merah
+        salinitas: 'rgb(255, 193, 7)', // Kuning
+        ketinggian_air: 'rgb(13, 202, 240)' // Cyan
+    };
 
-    params.forEach(id => {
-        // Doughnut/Pie Chart
-        new Chart(document.getElementById(`pie-${id}`), {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    data: [30, 20, 25, 25],
-                    backgroundColor: ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728'],
-                    borderWidth: 0,
-                    cutout: '80%'
-                }]
-            },
-            options: { plugins: { legend: { display: false } } }
+    @foreach($selectedParams as $param)
+        datasets.push({
+            label: '{{ strtoupper(str_replace("_", " ", $param)) }}',
+            data: dataMaster.map(d => d.{{ $param }}),
+            borderColor: colors.{{ $param }},
+            backgroundColor: colors.{{ $param }}.replace('rgb', 'rgba').replace(')', ', 0.1)'),
+            borderWidth: 3,
+            fill: true,
+            pointRadius: 3,
+            pointHoverRadius: 6,
+            tension: 0.3
         });
+    @endforeach
 
-        // Line Chart
-        new Chart(document.getElementById(`line-${id}`), {
-            type: 'line',
-            data: {
-                labels: months,
-                datasets: [{
-                    data: [15, 25, 18, 28, 16, 22],
-                    borderColor: '#1f77b4',
-                    tension: 0.4,
-                    pointRadius: 0,
-                    borderWidth: 2
-                }, {
-                    data: [10, 15, 12, 18, 20, 18],
-                    borderColor: '#ff7f0e',
-                    tension: 0.4,
-                    pointRadius: 0,
-                    borderWidth: 2
-                }]
+    new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: datasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { 
+                    position: 'top',
+                    labels: { usePointStyle: true, padding: 20 }
+                },
+                tooltip: { mode: 'index', intersect: false }
             },
-            options: {
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { display: false }
+            scales: {
+                x: { grid: { display: false } },
+                y: { 
+                    beginAtZero: false,
+                    grid: { color: 'rgba(0,0,0,0.05)' }
                 }
             }
-        });
+        }
     });
 </script>
+@endpush
 @endsection

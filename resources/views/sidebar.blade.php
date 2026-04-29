@@ -18,7 +18,7 @@
 
     <!-- Menu -->
     <nav class="mt-4">
-        <a href="#"
+        <a href="/home"
             class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-200">
             <span>🏠</span>
             <span x-show="open">Dashboard</span>
